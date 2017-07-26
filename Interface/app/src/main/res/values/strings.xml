@@ -1,3 +1,15 @@
 <resources>
-    <string name="app_name">Interface1</string>
+    <string name="app_name">App name</string>
+    <string-array name="MotionItem">
+        <item></item>
+        <item>右に傾ける</item>
+        <item>左に傾ける</item>
+        <item>振る</item>
+    </string-array>
+    <string-array name="AppItem">
+        <item></item>
+        <item>ブラウザ</item>
+        <item>電卓</item>
+        <item>カメラ</item>
+    </string-array>
 </resources>
