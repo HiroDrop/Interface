@@ -25,6 +25,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         final Spinner action = (Spinner)findViewById(R.id.app1);
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 327ad5565fba2407e53dcbabae47a71e40b52cd4
         minusbtn.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
@@ -47,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
+<<<<<<< HEAD
     @Override
     protected void onResume() {
         super.onResume();
@@ -75,8 +80,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         startActivity(intent);
     }
     private void startBrowser(){
+=======
+    private void startCamera(){
+>>>>>>> 327ad5565fba2407e53dcbabae47a71e40b52cd4
         Uri uri = Uri.parse("https://www.google.co.jp/");
         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        startActivity(intent);
+    }
+    private void startDial(){
+        Intent intent = new Intent(Intent.ACTION_DIAL);
+        startActivity(intent);
+    }
+    private void startBrowser(){
+        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
         startActivity(intent);
     }
 
