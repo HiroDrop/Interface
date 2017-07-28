@@ -9,7 +9,7 @@
     <string-array name="AppItem">
         <item></item>
         <item>ブラウザ</item>
-        <item>電卓</item>
+        <item>ダイアル</item>
         <item>カメラ</item>
     </string-array>
 </resources>
