@@ -10,6 +10,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <TextView
+            android:id="@+id/sensorY"
+            android:layout_width="152dp"
+            android:layout_height="100dp"
+            android:layout_marginLeft="100dp"
+            android:layout_marginTop="400dp"
+            android:text="TextView"
+            android:textSize="30sp" />
+
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent">
