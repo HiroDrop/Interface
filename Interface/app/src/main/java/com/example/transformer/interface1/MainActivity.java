@@ -51,10 +51,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //アプリが起動状態かどうか
     private boolean started[] = new boolean[MOTION_NUM];
 
+    //モーションの列挙
     enum MOTION{
         INCL_RIGHT, INCL_LEFT, SHUFFLE;
     }
 
+    //モーションと文字列の対応
     private final Map<MOTION, String> motionmap = new HashMap<MOTION, String>(){
         {
             put(INCL_RIGHT, "右に傾ける");
@@ -103,11 +105,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onResume() {
         super.onResume();
 
+        //ジャイロセンサー取得
         List<Sensor> sensors = mSensorManager.getSensorList(Sensor.TYPE_GYROSCOPE);
         if(sensors.size() > 0){
             Sensor s = sensors.get(0);
             mSensorManager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI);
         }
+
+        //加速度センサー取得
         sensors = mSensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER);
         if(sensors.size() > 0){
             Sensor s = sensors.get(0);
@@ -125,17 +130,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onAccuracyChanged(Sensor sensor, int accuracy){}
 
     @Override
-    public void onSensorChanged(SensorEvent event){
+    public void onSensorChanged(SensorEvent event){ //センサーのデータに変化があれば
         switch(event.sensor.getType()){
-            case Sensor.TYPE_GYROSCOPE:
+            case Sensor.TYPE_GYROSCOPE: //ジャイロセンサーについて
                 sensorY = event.values[1];
                 TextView t = (TextView)findViewById(R.id.sensorY);
                 t.setText(String.valueOf(sensorY));
-                if(sensorY > th) startApp(MOTION.INCL_RIGHT);
-                if(sensorY < -1.0f * th) startApp(MOTION.INCL_RIGHT);
+                if(sensorY > th) startApp(MOTION.INCL_RIGHT);           //右に傾けたらアプリ起動
+                if(sensorY < -1.0f * th) startApp(MOTION.INCL_RIGHT);   //左に傾けたらアプリ起動
                 Log.i("gyro", "rotateY = " + sensorY);
                 break;
-            case Sensor.TYPE_ACCELEROMETER:
+            case Sensor.TYPE_ACCELEROMETER: //加速度センサーについて
                 long now = System.currentTimeMillis();
                 if((now - lastforce) > SHAKETIMEOUT) shakecount = 0;
                 if((now - lasttime) > TIMETHRESHOLD){
@@ -143,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     float speed = Math.abs(event.values[0] + event.values[1] + event.values[2] - lastaccel[0] - lastaccel[1] - lastaccel[2]) / diff * 10000;
                     Log.i("accel", String.valueOf(speed) + ", " + String.valueOf(FORCETHRESHOLD));
                     if(speed > FORCETHRESHOLD){
-                        startApp(MOTION.SHUFFLE);
+                        startApp(MOTION.SHUFFLE);      //振ったらアプリ起動
                         if((++shakecount > SHAKECOUNT) && now - lastshake > SHAKEDURATION){
                             lastshake = now;
                             shakecount = 0;
@@ -160,8 +165,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void startApp(MOTION type){
-        Spinner mlist[] = new Spinner[MOTION_NUM];
-        Spinner alist[] = new Spinner[MOTION_NUM];
+        Spinner mlist[] = new Spinner[MOTION_NUM];  //モーション用配列
+        Spinner alist[] = new Spinner[MOTION_NUM];  //アプリ用配列
+
+        //初期化処理
         mlist[0] = (Spinner) findViewById(R.id.action1);
         mlist[1] = (Spinner) findViewById(R.id.action2);
         mlist[2] = (Spinner) findViewById(R.id.action3);
@@ -170,37 +177,41 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         alist[2] = (Spinner) findViewById(R.id.app3);
         String motion = motionmap.get(type);
 
+        //設定されているモーションがあるかどうか検索
         for(int i = 0; i < MOTION_NUM; i++){
-            if(!started[i]) {
-                if(mlist[i].getSelectedItem().equals(motion)){
-                    String item = (String) alist[i].getSelectedItem();
-                    if (item.equals("カメラ")) {
-                        startCamera();
-                        started[i] = true;
-                        break;
-                    } else if (item.equals("ブラウザ")) {
-                        startBrowser();
-                        started[i] = true;
-                        break;
-                    } else if (item.equals("ダイアル")) {
-                        startDial();
-                        started[i] = true;
-                    }
-                    else continue;
+            if(!started[i] && mlist[i].getSelectedItem().equals(motion)){
+                String item = (String) alist[i].getSelectedItem();
+                if (item.equals("カメラ")) {
+                    startCamera();
+                    started[i] = true;
                     break;
+                } else if (item.equals("ブラウザ")) {
+                    startBrowser();
+                    started[i] = true;
+                    break;
+                } else if (item.equals("ダイアル")) {
+                    startDial();
+                    started[i] = true;
                 }
+                else continue;
+                break;
             }
         }
     }
 
+    //カメラ起動
     private void startCamera(){
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
         startActivity(intent);
     }
+
+    //ダイアル起動
     private void startDial(){
         Intent intent = new Intent(Intent.ACTION_DIAL);
         startActivity(intent);
     }
+
+    //ブラウザ起動
     private void startBrowser(){
         Uri uri = Uri.parse("https://www.google.co.jp/");
         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
