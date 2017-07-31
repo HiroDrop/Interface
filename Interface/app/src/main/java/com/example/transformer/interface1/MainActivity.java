@@ -32,7 +32,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager mSensorManager;
     private final int MOTION_NUM = 3;
 
-    //ジャイロセンサ用
+    //地磁気センサ用
+    float[] magnetic = null;
+    float[] gravity = null;
+    private boolean signed = false;
+    private float sensorX = 0.0f;
     private float sensorY = 0.0f;
     private final float th = 45.0f;
 
@@ -42,8 +46,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private long lastshake = 0;
     private int shakecount = 0;
     private float lastaccel[] = new float[3];
-    private final int SHAKETIMEOUT = 100;
-    private final float FORCETHRESHOLD = 350.0f;
+    private final int SHAKETIMEOUT = 1000;
+    private final float FORCETHRESHOLD = 1000.0f;
     private final int TIMETHRESHOLD = 100;
     private final int SHAKECOUNT = 3;
     private final int SHAKEDURATION = 100;
@@ -107,9 +111,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //ジャイロセンサー取得
         List<Sensor> sensors = mSensorManager.getSensorList(Sensor.TYPE_GYROSCOPE);
+        Log.i("初期化", String.valueOf(sensors.size()));
         if(sensors.size() > 0){
             Sensor s = sensors.get(0);
             mSensorManager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI);
+        }
+
+        //地磁気センサー取得
+        sensors = mSensorManager.getSensorList(Sensor.TYPE_MAGNETIC_FIELD);
+        Log.i("初期化", String.valueOf(sensors.size()));
+        if(sensors.size() > 0){
+            Sensor s = sensors.get(0);
+            mSensorManager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI);
+            Log.i("初期化", "added magnetic sensor");
         }
 
         //加速度センサー取得
@@ -132,24 +146,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent event){ //センサーのデータに変化があれば
         switch(event.sensor.getType()){
-            case Sensor.TYPE_GYROSCOPE: //ジャイロセンサーについて
-                sensorY = event.values[1];
-                TextView t = (TextView)findViewById(R.id.sensorY);
-                t.setText(String.valueOf(sensorY));
-                if(sensorY > th) startApp(MOTION.INCL_RIGHT);           //右に傾けたらアプリ起動
-                if(sensorY < -1.0f * th) startApp(MOTION.INCL_RIGHT);   //左に傾けたらアプリ起動
-                Log.i("gyro", "rotateY = " + sensorY);
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                magnetic = event.values.clone();
                 break;
             case Sensor.TYPE_ACCELEROMETER: //加速度センサーについて
+                gravity = event.values.clone();
                 long now = System.currentTimeMillis();
                 if((now - lastforce) > SHAKETIMEOUT) shakecount = 0;
                 if((now - lasttime) > TIMETHRESHOLD){
                     long diff = now - lasttime;
                     float speed = Math.abs(event.values[0] + event.values[1] + event.values[2] - lastaccel[0] - lastaccel[1] - lastaccel[2]) / diff * 10000;
-                    Log.i("accel", String.valueOf(speed) + ", " + String.valueOf(FORCETHRESHOLD));
                     if(speed > FORCETHRESHOLD){
-                        startApp(MOTION.SHUFFLE);      //振ったらアプリ起動
                         if((++shakecount > SHAKECOUNT) && now - lastshake > SHAKEDURATION){
+                            Log.i("motion", "shuffled!");
+                            startApp(MOTION.SHUFFLE);      //振ったらアプリ起動
                             lastshake = now;
                             shakecount = 0;
                         }
@@ -161,6 +171,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     lastaccel[2] = event.values[2];
                 }
                 break;
+        }
+        if(magnetic != null && gravity != null){
+            float[] inR = new float[9];
+            float[] outR = new float[9];
+            float[] attitude = new float[3];
+            mSensorManager.getRotationMatrix(inR, null, gravity, magnetic);
+            mSensorManager.remapCoordinateSystem(inR, SensorManager.AXIS_X, SensorManager.AXIS_Y, outR);
+            mSensorManager.getOrientation(outR, attitude);
+
+            float RAD2DEG = (float)( 180.0f / Math.PI);
+            sensorX = (float)(attitude[1] * RAD2DEG);
+            sensorY = (float)(attitude[2] * RAD2DEG);
+            TextView t = (TextView)findViewById(R.id.sensorY);
+            t.setText(String.valueOf(sensorY));
+            if(sensorX > -90.0f) {
+                if (sensorY > th){
+                    Log.i("motion", "right");
+                    startApp(INCL_RIGHT);
+                }
+                else if (sensorY < -1.0f * th){
+                    Log.i("motion", "left");
+                    startApp(INCL_LEFT);
+                }
+            }
         }
     }
 
@@ -183,15 +217,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String item = (String) alist[i].getSelectedItem();
                 if (item.equals("カメラ")) {
                     startCamera();
-                    started[i] = true;
+//                    started[i] = true;
                     break;
                 } else if (item.equals("ブラウザ")) {
                     startBrowser();
-                    started[i] = true;
+//                    started[i] = true;
                     break;
                 } else if (item.equals("ダイアル")) {
                     startDial();
-                    started[i] = true;
+//                    started[i] = true;
                 }
                 else continue;
                 break;
@@ -202,12 +236,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //カメラ起動
     private void startCamera(){
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+        intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
         startActivity(intent);
     }
 
     //ダイアル起動
     private void startDial(){
         Intent intent = new Intent(Intent.ACTION_DIAL);
+        intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
         startActivity(intent);
     }
 
@@ -215,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void startBrowser(){
         Uri uri = Uri.parse("https://www.google.co.jp/");
         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
         startActivity(intent);
     }
 }
