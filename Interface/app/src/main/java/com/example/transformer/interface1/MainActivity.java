@@ -1,11 +1,15 @@
 package com.example.transformer.interface1;
 
+import android.app.ActivityManager;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
+import android.support.v4.app.ActivityManagerCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 import static com.example.transformer.interface1.MainActivity.MOTION.INCL_LEFT;
 import static com.example.transformer.interface1.MainActivity.MOTION.INCL_RIGHT;
@@ -31,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private SensorManager mSensorManager;
     private final int MOTION_NUM = 3;
+    private final int APP_NUM = MOTION_NUM;
 
     //地磁気センサ用
     float[] magnetic = null;
@@ -53,11 +59,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final int SHAKEDURATION = 100;
 
     //アプリが起動状態かどうか
+    private Intent[] appList = new Intent[APP_NUM];
+    private ActivityManager mActivityManager;
     private boolean started[] = new boolean[MOTION_NUM];
 
     //モーションの列挙
     enum MOTION{
         INCL_RIGHT, INCL_LEFT, SHUFFLE;
+    }
+
+    //アプリの列挙
+    private enum APP{
+        CAMERA(0), DIAL(1), BROWSER(2);
+
+        private final int id;
+
+        private APP(final int id){
+            this.id = id;
+        }
+
+        public final int getIdx(){ return this.id; }
     }
 
     //モーションと文字列の対応
@@ -77,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for(int i = 0; i < MOTION_NUM; i++) started[i] = false;
         lastaccel[0] = lastaccel[1] = lastaccel[2] = -1.0f;
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        Log.i("情報", "準備完了");
+        mActivityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
 
 //        Button minusbtn = (Button)findViewById(R.id.minusbutton);
 //        final Spinner action = (Spinner)findViewById(R.id.app1);
@@ -159,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     if(speed > FORCETHRESHOLD){
                         if((++shakecount > SHAKECOUNT) && now - lastshake > SHAKEDURATION){
                             Log.i("motion", "shuffled!");
-                            startApp(MOTION.SHUFFLE);      //振ったらアプリ起動
+                            startApp(SHUFFLE);      //振ったらアプリ起動
                             lastshake = now;
                             shakecount = 0;
                         }
@@ -235,23 +256,41 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     //カメラ起動
     private void startCamera(){
-        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-        intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
-        startActivity(intent);
+        if(appList[0] != null){
+            startActivity(appList[0]);
+            return;
+        }
+        appList[0] = new Intent("android.media.action.IMAGE_CAPTURE");
+        appList[0].setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivityForResult(appList[0], APP.CAMERA.getIdx());;
     }
 
     //ダイアル起動
     private void startDial(){
-        Intent intent = new Intent(Intent.ACTION_DIAL);
-        intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
-        startActivity(intent);
+        if(appList[1] != null){
+            startActivity(appList[1]);
+            return;
+        }
+        appList[1] = new Intent(Intent.ACTION_DIAL);
+        appList[1].setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivityForResult(appList[1], APP.DIAL.getIdx());
     }
 
     //ブラウザ起動
     private void startBrowser(){
+        if(appList[2] != null){
+            startActivity(appList[2]);
+            return;
+        }
         Uri uri = Uri.parse("https://www.google.co.jp/");
-        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-        intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
-        startActivity(intent);
+        appList[2] = new Intent(Intent.ACTION_VIEW, uri);
+        appList[2].setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivityForResult(appList[2], APP.BROWSER.getIdx());
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        Log.i("MyInfoAboutEndApp", requestCode + " ended");
+        appList[requestCode] = null;
     }
 }
