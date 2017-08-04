@@ -204,8 +204,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             float RAD2DEG = (float)( 180.0f / Math.PI);
             sensorX = (float)(attitude[1] * RAD2DEG);
             sensorY = (float)(attitude[2] * RAD2DEG);
-            TextView t = (TextView)findViewById(R.id.sensorY);
-            t.setText(String.valueOf(sensorY));
             if(sensorX > -90.0f) {
                 if (sensorY > th){
                     Log.i("motion", "right");
@@ -257,18 +255,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //カメラ起動
     private void startCamera(){
         if(appList[0] != null){
-            startActivity(appList[0]);
             return;
         }
         appList[0] = new Intent("android.media.action.IMAGE_CAPTURE");
-        appList[0].setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        appList[0].setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivityForResult(appList[0], APP.CAMERA.getIdx());;
     }
 
     //ダイアル起動
     private void startDial(){
         if(appList[1] != null){
-            startActivity(appList[1]);
             return;
         }
         appList[1] = new Intent(Intent.ACTION_DIAL);
@@ -279,7 +275,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //ブラウザ起動
     private void startBrowser(){
         if(appList[2] != null){
-            startActivity(appList[2]);
             return;
         }
         Uri uri = Uri.parse("https://www.google.co.jp/");
